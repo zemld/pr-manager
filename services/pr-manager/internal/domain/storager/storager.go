@@ -14,10 +14,6 @@ type Transactor interface {
 	Rollback() error
 }
 
-type Closer interface {
-	Close() error
-}
-
 type UserStorager interface {
 	UserSelector
 	UserUpdater

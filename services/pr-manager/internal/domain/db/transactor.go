@@ -32,16 +32,20 @@ func (t *Transactor) Begin(ctx context.Context) error {
 }
 
 func (t *Transactor) Commit() error {
-	return t.tx.Commit(t.ctx)
+	if err := t.tx.Commit(t.ctx); err != nil {
+		return err
+	}
+	if err := t.conn.Close(t.ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *Transactor) Rollback() error {
-	return t.tx.Rollback(t.ctx)
-}
-
-func (t *Transactor) Close() error {
-	err := t.conn.Close(t.ctx)
-	if err != nil {
+	if err := t.tx.Rollback(t.ctx); err != nil {
+		return err
+	}
+	if err := t.conn.Close(t.ctx); err != nil {
 		return err
 	}
 	return nil
