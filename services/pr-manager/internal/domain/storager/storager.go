@@ -46,6 +46,14 @@ type PullRequestUpdater interface {
 	Update(pullRequest domain.PullRequest) error
 }
 
-type PullRequestInserter interface {
-	Insert(pullRequest domain.PullRequest) error
+type PullRequestCreator interface {
+	Create(pullRequest domain.PullRequest) error
+}
+
+type PullRequestMerger interface {
+	Merge(pullRequest domain.PullRequest) error
+}
+
+type PullRequestReassigner interface {
+	Reassign(pullRequest domain.PullRequest) error
 }
