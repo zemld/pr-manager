@@ -18,6 +18,12 @@ type Closer interface {
 	Close() error
 }
 
+type UserStorager interface {
+	UserSelector
+	UserUpdater
+	UserInserter
+}
+
 type UserSelector interface {
 	Select(userID string) (domain.User, error)
 }
@@ -30,12 +36,25 @@ type UserInserter interface {
 	Insert(user domain.User) error
 }
 
+type TeamStorager interface {
+	TeamSelector
+	TeamInserter
+}
+
 type TeamSelector interface {
 	Select(teamName string) (domain.Team, error)
 }
 
 type TeamInserter interface {
 	Insert(team domain.Team) error
+}
+
+type PullRequestStorager interface {
+	PullRequestSelector
+	PullRequestUpdater
+	PullRequestCreator
+	PullRequestMerger
+	PullRequestReassigner
 }
 
 type PullRequestSelector interface {
