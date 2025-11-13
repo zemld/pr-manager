@@ -4,16 +4,16 @@ import "time"
 
 type PullRequest struct {
 	PullRequestShort
-	AssignedReviewers string
-	CreatedAt         time.Time
-	MergedAt          time.Time
+	AssignedReviewers string    `json:"assigned_reviewers"`
+	CreatedAt         time.Time `json:"created_at"`
+	MergedAt          time.Time `json:"merged_at"`
 }
 
 type PullRequestShort struct {
-	ID       string
-	Name     string
-	AuthorID string
-	Status   PullRequestStatus
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	AuthorID string            `json:"author_id"`
+	Status   PullRequestStatus `json:"status"`
 }
 
 type PullRequestStatus string
