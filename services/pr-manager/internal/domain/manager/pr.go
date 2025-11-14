@@ -11,6 +11,8 @@ import (
 	"github.com/zemld/pr-manager/pr-manager/internal/domain/db"
 )
 
+const maxAssigners = 2
+
 type PullRequestManager struct {
 	Storage *db.Storage
 }
@@ -20,7 +22,25 @@ func NewPullRequestManager(storage *db.Storage) *PullRequestManager {
 }
 
 func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (domain.PullRequest, error) {
-	err := m.Storage.PullRequestStorage.Create(pullRequest)
+	authorTeamMembers, err := m.getReviewerTeamMembers(pullRequest.AuthorID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+	possibleAssigners := m.filterReviewers(m.getActiveUserIDsFromTeam(authorTeamMembers), pullRequest.AuthorID)
+	if len(possibleAssigners) == 0 {
+		return domain.PullRequest{}, errors.New("no possible assigners")
+	}
+	assigners := make([]string, 0, maxAssigners)
+	for range maxAssigners {
+		if len(possibleAssigners) == 0 {
+			break
+		}
+		assigners = append(assigners, m.getRandomUserID(possibleAssigners))
+		possibleAssigners = m.filterReviewers(possibleAssigners, assigners...)
+	}
+	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(assigners, ", "))
+
+	err = m.Storage.PullRequestStorage.Create(pullRequest)
 	if err != nil {
 		return domain.PullRequest{}, err
 	}
@@ -43,26 +63,36 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 		return domain.PullRequest{}, err
 	}
 
-	if err := m.isOldReviewerInPullRequest(pullRequest, oldReviewerID); err != nil {
-		return domain.PullRequest{}, err
+	if pullRequest.Status == domain.Merged {
+		return domain.PullRequest{}, errors.New("pull request is already merged")
 	}
 
-	oldReviewerTeamMembers, err := m.getOldReviewerTeamMembers(oldReviewerID)
+	oldReviewerTeamMembers, err := m.getReviewerTeamMembers(oldReviewerID)
 	if err != nil {
 		return domain.PullRequest{}, err
 	}
 
-	newReviewers, err := m.getNewReviewers(oldReviewerTeamMembers, oldReviewerID, pullRequest.AuthorID)
-	if err != nil {
-		return domain.PullRequest{}, err
+	oldReviewers := strings.Split(strings.Trim(pullRequest.AssignedReviewers, "[]"), ",")
+	var anotherReviewer string
+	for _, reviewer := range oldReviewers {
+		if strings.Trim(reviewer, " ") != oldReviewerID {
+			anotherReviewer = reviewer
+			break
+		}
 	}
 
-	err = m.Storage.PullRequestStorage.Reassign(domain.PullRequest{
-		PullRequestShort: domain.PullRequestShort{
-			ID: pullRequestID,
-		},
-		AssignedReviewers: newReviewers,
-	})
+	newPossibleReviewers := m.filterReviewers(m.getActiveUserIDsFromTeam(oldReviewerTeamMembers), oldReviewerID, pullRequest.AuthorID, anotherReviewer)
+
+	newReviewers := make([]string, 0, maxAssigners)
+	if anotherReviewer != "" {
+		newReviewers = append(newReviewers, anotherReviewer)
+	}
+	if len(newPossibleReviewers) > 0 {
+		newReviewers = append(newReviewers, m.getRandomUserID(newPossibleReviewers))
+	}
+	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(newReviewers, ", "))
+
+	err = m.Storage.PullRequestStorage.Reassign(pullRequest)
 	if err != nil {
 		return domain.PullRequest{}, err
 	}
@@ -70,15 +100,7 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 	return m.Storage.PullRequestStorage.Select(pullRequestID)
 }
 
-func (m *PullRequestManager) isOldReviewerInPullRequest(pullRequest domain.PullRequest, oldReviewerID string) error {
-	reviewers := strings.Split(strings.Trim(pullRequest.AssignedReviewers, "[]"), ",")
-	if !slices.Contains(reviewers, oldReviewerID) {
-		return errors.New("old reviewer is not in the list of assigned reviewers")
-	}
-	return nil
-}
-
-func (m *PullRequestManager) getOldReviewerTeamMembers(reviewerID string) ([]domain.TeamMember, error) {
+func (m *PullRequestManager) getReviewerTeamMembers(reviewerID string) ([]domain.TeamMember, error) {
 	reviewer, err := m.Storage.UserStorage.Select(reviewerID)
 	if err != nil {
 		return nil, err
@@ -93,22 +115,29 @@ func (m *PullRequestManager) getOldReviewerTeamMembers(reviewerID string) ([]dom
 	return reviewerTeam.Members, nil
 }
 
-func (m *PullRequestManager) getNewReviewers(teamMembers []domain.TeamMember, oldReviewerID string, authorID string) (string, error) {
-	activeUserIDsFromOldReviewerTeamWithoutOldReviewer := make([]string, 0, len(teamMembers))
+func (m *PullRequestManager) getActiveUserIDsFromTeam(teamMembers []domain.TeamMember) []string {
+	activeUserIDsFromTeam := make([]string, 0, len(teamMembers))
 	for _, member := range teamMembers {
-		if member.IsActive && member.UserID != oldReviewerID && member.Username != authorID {
-			activeUserIDsFromOldReviewerTeamWithoutOldReviewer = append(
-				activeUserIDsFromOldReviewerTeamWithoutOldReviewer,
+		if member.IsActive {
+			activeUserIDsFromTeam = append(
+				activeUserIDsFromTeam,
 				member.UserID,
 			)
 		}
 	}
+	return activeUserIDsFromTeam
+}
 
-	if len(activeUserIDsFromOldReviewerTeamWithoutOldReviewer) == 0 {
-		return "", errors.New("no active users in the old reviewer team")
+func (m *PullRequestManager) filterReviewers(userIDs []string, destrictedUserIDs ...string) []string {
+	filteredUserIDs := make([]string, 0, len(userIDs))
+	for _, userID := range userIDs {
+		if !slices.Contains(destrictedUserIDs, userID) {
+			filteredUserIDs = append(filteredUserIDs, userID)
+		}
 	}
+	return filteredUserIDs
+}
 
-	newReviewerID := activeUserIDsFromOldReviewerTeamWithoutOldReviewer[rand.IntN(len(activeUserIDsFromOldReviewerTeamWithoutOldReviewer))]
-	newReviewers := fmt.Sprintf("[%s, %s]", authorID, newReviewerID)
-	return newReviewers, nil
+func (m *PullRequestManager) getRandomUserID(userIDs []string) string {
+	return userIDs[rand.IntN(len(userIDs))]
 }

@@ -14,17 +14,19 @@ func NewUserManager(userStorage storager.UserStorager) *UserManager {
 }
 
 func (m *UserManager) UpdateUserStatus(user domain.User) (domain.User, error) {
-	user, err := m.SelectUser(user.UserID)
+	existingUser, err := m.SelectUser(user.UserID)
 	if err != nil {
 		return domain.User{}, err
 	}
 
-	err = m.UserStorage.Update(user)
+	existingUser.IsActive = user.IsActive
+
+	err = m.UserStorage.Update(existingUser)
 	if err != nil {
 		return domain.User{}, err
 	}
 
-	return user, nil
+	return existingUser, nil
 }
 
 func (m *UserManager) SelectUser(userID string) (domain.User, error) {
