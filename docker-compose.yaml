@@ -1,6 +1,5 @@
 services:
   pr-manager:
-    image: golang:1.25.1-alpine
     build:
       context: ./services/pr-manager
       dockerfile: Dockerfile
