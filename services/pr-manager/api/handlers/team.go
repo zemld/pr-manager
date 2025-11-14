@@ -25,6 +25,10 @@ func AddTeamHandler(w http.ResponseWriter, r *http.Request) {
 	result, err := application.AddTeam(r.Context(), team)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
+			if strings.Contains(err.Error(), "user with id") {
+				writeError(w, http.StatusBadRequest, ErrorCodeNotFound, err.Error())
+				return
+			}
 			writeError(w, http.StatusBadRequest, ErrorCodeTeamExists, "team_name already exists")
 			return
 		}

@@ -13,6 +13,7 @@ func AddTeam(ctx context.Context, team domain.Team) (domain.Team, error) {
 	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
 		teamStorage := db.NewTeamStorage(config, *tx)
 		teamStorage.SetInsertQuery(db.InsertUser)
+		teamStorage.SetSelectUserQuery(db.SelectUser)
 		teamManager := manager.NewTeamManager(teamStorage)
 		var err error
 		result, err = teamManager.AddTeam(team)
