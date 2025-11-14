@@ -47,7 +47,6 @@ type TeamInserter interface {
 
 type PullRequestStorager interface {
 	PullRequestSelector
-	PullRequestUpdater
 	PullRequestCreator
 	PullRequestMerger
 	PullRequestReassigner
@@ -55,10 +54,6 @@ type PullRequestStorager interface {
 
 type PullRequestSelector interface {
 	Select(pullRequestID string) (domain.PullRequest, error)
-}
-
-type PullRequestUpdater interface {
-	Update(pullRequest domain.PullRequest) error
 }
 
 type PullRequestCreator interface {
