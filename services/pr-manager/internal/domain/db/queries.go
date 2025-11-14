@@ -98,14 +98,8 @@ const (
 				status
 			FROM
 				pull_requests_statuses
-			WHERE id = (
-				SELECT
-					status_id
-				FROM
-					pull_requests
-				WHERE id = pull_requests.id
-			)
-		),
+			WHERE id = pull_requests.status_id
+		) as status,
 		assigned_reviewers,
 		created_at,
 		merged_at
