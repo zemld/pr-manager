@@ -11,7 +11,7 @@ type Initializer struct {
 	Queries []string
 }
 
-func NewDBInitializer(config Config, queries []string) *Initializer {
+func NewDBInitializer(config Config, queries ...string) *Initializer {
 	return &Initializer{Config: config, Queries: queries}
 }
 

@@ -5,6 +5,7 @@ type Config struct {
 	Db       string
 	Host     string
 	Password string
+	Port     string
 }
 
 func NewConfig(user string, db string, host string, password string) *Config {
@@ -12,5 +13,5 @@ func NewConfig(user string, db string, host string, password string) *Config {
 }
 
 func (c Config) GetConnectionString() string {
-	return "postgres://" + c.User + ":" + c.Password + "@" + c.Host + ":5432/" + c.Db
+	return "postgres://" + c.User + ":" + c.Password + "@" + c.Host + ":" + c.Port + "/" + c.Db
 }
