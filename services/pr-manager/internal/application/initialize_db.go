@@ -11,5 +11,6 @@ func InitializeDB(ctx context.Context) error {
 		db.CreateUsersTable,
 		db.CreatePullRequestsStatusesTable,
 		db.CreatePullRequestsTable,
+		db.FillPullRequestsStatusesTable,
 	).Initialize()
 }

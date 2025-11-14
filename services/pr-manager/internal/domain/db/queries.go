@@ -12,7 +12,7 @@ const (
 	`
 	CreatePullRequestsStatusesTable = `
 	CREATE TABLE IF NOT EXISTS pull_requests_statuses (
-		id SERIAL PRIMARY KEY,
+		id SERIAL,
 		status TEXT NOT NULL,
 		PRIMARY KEY (id)
 	)
@@ -24,8 +24,8 @@ const (
 		author_id TEXT NOT NULL,
 		status_id INT NOT NULL,
 		assigned_reviewers TEXT NOT NULL,
-		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		merged_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		created_at TIMESTAMP,
+		merged_at TIMESTAMP,
 		PRIMARY KEY (id),
 		FOREIGN KEY (author_id) REFERENCES users (id),
 		FOREIGN KEY (status_id) REFERENCES pull_requests_statuses (id)
@@ -41,11 +41,11 @@ const (
 		team_name,
 		json_agg(
 			json_build_object(
-				'id', id,
+				'user_id', id,
 				'username', username,
 				'is_active', is_active
 			)
-		) as members,
+		) as members
 	FROM users 
 	WHERE team_name = $1
 	GROUP BY team_name
@@ -56,7 +56,10 @@ const (
 	`
 	InsertUser = `
 	INSERT INTO users (id, username, team_name, is_active) VALUES ($1, $2, $3, $4)
-	ON CONFLICT (id) DO NOTHING
+	ON CONFLICT (id) DO UPDATE SET 
+		username = EXCLUDED.username,
+		team_name = EXCLUDED.team_name,
+		is_active = EXCLUDED.is_active
 	`
 
 	CreatePullRequest = `
@@ -133,7 +136,7 @@ const (
 	`
 	SelectUser = `
 	SELECT
-		id,
+		id as user_id,
 		username,
 		team_name,
 		is_active
