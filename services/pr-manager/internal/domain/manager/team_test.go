@@ -27,11 +27,17 @@ func TestTeamManager_AddTeam(t *testing.T) {
 					t.Errorf("expected 3 members, got %d", len(team.Members))
 				}
 				// Verify team was stored
-				storedTeam, err := storage.Select("team1")
+				teamName := "team1"
+				storedTeams, err := storage.Select(&teamName)
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 					return
 				}
+				if len(storedTeams) == 0 {
+					t.Error("expected team to be found")
+					return
+				}
+				storedTeam := storedTeams[0]
 				if storedTeam.TeamName != "team1" {
 					t.Errorf("expected stored team name team1, got %s", storedTeam.TeamName)
 				}
@@ -148,7 +154,8 @@ func TestTeamManager_GetTeam(t *testing.T) {
 			tt.setup(storage)
 
 			manager := NewTeamManager(storage)
-			result, err := manager.GetTeam(tt.teamName)
+			teamNamePtr := &tt.teamName
+			result, err := manager.GetTeam(teamNamePtr)
 
 			if tt.wantErr {
 				if err == nil {

@@ -22,7 +22,7 @@ func AddTeam(ctx context.Context, team domain.Team) (domain.Team, error) {
 	return result, err
 }
 
-func GetTeam(ctx context.Context, teamName string) (domain.Team, error) {
+func GetTeam(ctx context.Context, teamName *string) (domain.Team, error) {
 	var result domain.Team
 	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
 		teamStorage := db.NewTeamStorage(config, *tx)
@@ -30,6 +30,19 @@ func GetTeam(ctx context.Context, teamName string) (domain.Team, error) {
 		teamManager := manager.NewTeamManager(teamStorage)
 		var err error
 		result, err = teamManager.GetTeam(teamName)
+		return err
+	}, true)
+	return result, err
+}
+
+func GetTeams(ctx context.Context) ([]domain.Team, error) {
+	var result []domain.Team
+	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
+		teamStorage := db.NewTeamStorage(config, *tx)
+		teamStorage.SetSelectQuery(db.SelectTeam)
+		teamManager := manager.NewTeamManager(teamStorage)
+		var err error
+		result, err = teamManager.GetTeams(nil)
 		return err
 	}, true)
 	return result, err

@@ -46,7 +46,14 @@ func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (
 		return domain.PullRequest{}, err
 	}
 
-	return m.Storage.PullRequestStorage.Select(pullRequest.ID)
+	prs, err := m.Storage.PullRequestStorage.Select(&pullRequest.ID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+	if len(prs) == 0 {
+		return domain.PullRequest{}, errors.New("pull request not found")
+	}
+	return prs[0], nil
 }
 
 func (m *PullRequestManager) MergePullRequest(pullRequest domain.PullRequest) (domain.PullRequest, error) {
@@ -55,14 +62,25 @@ func (m *PullRequestManager) MergePullRequest(pullRequest domain.PullRequest) (d
 		return domain.PullRequest{}, err
 	}
 
-	return m.Storage.PullRequestStorage.Select(pullRequest.ID)
+	prs, err := m.Storage.PullRequestStorage.Select(&pullRequest.ID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+	if len(prs) == 0 {
+		return domain.PullRequest{}, errors.New("pull request not found")
+	}
+	return prs[0], nil
 }
 
 func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReviewerID string) (domain.PullRequest, string, error) {
-	pullRequest, err := m.Storage.PullRequestStorage.Select(pullRequestID)
+	prs, err := m.Storage.PullRequestStorage.Select(&pullRequestID)
 	if err != nil {
 		return domain.PullRequest{}, "", err
 	}
+	if len(prs) == 0 {
+		return domain.PullRequest{}, "", errors.New("pull request not found")
+	}
+	pullRequest := prs[0]
 
 	if pullRequest.Status == domain.Merged {
 		return domain.PullRequest{}, "", errors.New("pull request is already merged")
@@ -101,25 +119,37 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 		return domain.PullRequest{}, "", err
 	}
 
-	updatedPullRequest, err := m.Storage.PullRequestStorage.Select(pullRequestID)
+	updatedPRs, err := m.Storage.PullRequestStorage.Select(&pullRequestID)
 	if err != nil {
 		return domain.PullRequest{}, "", err
 	}
+	if len(updatedPRs) == 0 {
+		return domain.PullRequest{}, "", errors.New("pull request not found")
+	}
+	updatedPullRequest := updatedPRs[0]
 
 	return updatedPullRequest, newReviewer, nil
 }
 
 func (m *PullRequestManager) getReviewerTeamMembers(reviewerID string) ([]domain.TeamMember, error) {
-	reviewer, err := m.Storage.UserStorage.Select(reviewerID)
+	users, err := m.Storage.UserStorage.Select(&reviewerID)
 	if err != nil {
 		return nil, err
 	}
+	if len(users) == 0 {
+		return nil, errors.New("reviewer not found")
+	}
+	reviewer := users[0]
 
 	reviewerTeamName := reviewer.TeamName
-	reviewerTeam, err := m.Storage.TeamStorage.Select(reviewerTeamName)
+	teams, err := m.Storage.TeamStorage.Select(&reviewerTeamName)
 	if err != nil {
 		return nil, err
 	}
+	if len(teams) == 0 {
+		return nil, errors.New("team not found")
+	}
+	reviewerTeam := teams[0]
 
 	return reviewerTeam.Members, nil
 }
@@ -153,4 +183,19 @@ func (m *PullRequestManager) getRandomUserID(userIDs []string) string {
 
 func (m *PullRequestManager) UserPullRequestsReviews(userID string) ([]domain.PullRequest, error) {
 	return m.Storage.PullRequestStorage.SelectUserPullRequestsReviews(userID)
+}
+
+func (m *PullRequestManager) GetPullRequest(pullRequestID *string) (domain.PullRequest, error) {
+	prs, err := m.Storage.PullRequestStorage.Select(pullRequestID)
+	if err != nil {
+		return domain.PullRequest{}, err
+	}
+	if len(prs) == 0 {
+		return domain.PullRequest{}, errors.New("pull request not found")
+	}
+	return prs[0], nil
+}
+
+func (m *PullRequestManager) GetPullRequests(pullRequestID *string) ([]domain.PullRequest, error) {
+	return m.Storage.PullRequestStorage.Select(pullRequestID)
 }

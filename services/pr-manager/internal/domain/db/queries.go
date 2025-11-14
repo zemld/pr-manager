@@ -48,7 +48,7 @@ const (
 			)
 		) as members
 	FROM users 
-	WHERE team_name = $1
+	WHERE ($1::text IS NULL OR team_name = $1)
 	GROUP BY team_name
 	`
 
@@ -126,8 +126,7 @@ const (
 		merged_at
 	FROM
 		pull_requests
-	WHERE id = $1
-	LIMIT 1
+	WHERE ($1::text IS NULL OR id = $1)
 	`
 	SelectUser = `
 	SELECT
@@ -137,7 +136,6 @@ const (
 		is_active
 	FROM
 		users
-	WHERE id = $1
-	LIMIT 1
+	WHERE ($1::text IS NULL OR id = $1)
 	`
 )

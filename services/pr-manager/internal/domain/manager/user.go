@@ -1,6 +1,8 @@
 package manager
 
 import (
+	"errors"
+
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 	"github.com/zemld/pr-manager/pr-manager/internal/domain/storager"
 )
@@ -14,7 +16,7 @@ func NewUserManager(userStorage storager.UserStorager) *UserManager {
 }
 
 func (m *UserManager) UpdateUserStatus(user domain.User) (domain.User, error) {
-	existingUser, err := m.SelectUser(user.UserID)
+	existingUser, err := m.SelectUser(&user.UserID)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -29,10 +31,17 @@ func (m *UserManager) UpdateUserStatus(user domain.User) (domain.User, error) {
 	return existingUser, nil
 }
 
-func (m *UserManager) SelectUser(userID string) (domain.User, error) {
-	user, err := m.UserStorage.Select(userID)
+func (m *UserManager) SelectUser(userID *string) (domain.User, error) {
+	users, err := m.UserStorage.Select(userID)
 	if err != nil {
 		return domain.User{}, err
 	}
-	return user, nil
+	if len(users) == 0 {
+		return domain.User{}, errors.New("user not found")
+	}
+	return users[0], nil
+}
+
+func (m *UserManager) SelectUsers(userID *string) ([]domain.User, error) {
+	return m.UserStorage.Select(userID)
 }

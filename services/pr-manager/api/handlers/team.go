@@ -15,7 +15,8 @@ func AddTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingTeam, err := application.GetTeam(r.Context(), req.TeamName)
+	teamName := req.TeamName
+	existingTeam, err := application.GetTeam(r.Context(), &teamName)
 	if err == nil && existingTeam.TeamName != "" {
 		writeError(w, http.StatusBadRequest, ErrorCodeTeamExists, "team_name already exists")
 		return
@@ -48,7 +49,7 @@ func GetTeamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	team, err := application.GetTeam(r.Context(), teamName)
+	team, err := application.GetTeam(r.Context(), &teamName)
 	if err != nil || team.TeamName == "" {
 		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
 		return

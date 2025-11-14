@@ -1,8 +1,6 @@
 package db
 
 import (
-	"errors"
-
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 )
 
@@ -30,23 +28,35 @@ func (s *UserStorage) SetInsertQuery(insertQuery string) {
 	s.insertQuery = insertQuery
 }
 
-func (s *UserStorage) Select(userID string) (domain.User, error) {
-	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, userID)
+func (s *UserStorage) Select(userID *string) ([]domain.User, error) {
+	var filter any
+	if userID != nil {
+		filter = *userID
+	} else {
+		filter = nil
+	}
+
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, filter)
 	if err != nil {
-		return domain.User{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	var user domain.User
-	if rows.Next() {
+	var users []domain.User
+	for rows.Next() {
+		var user domain.User
 		err = rows.Scan(&user.UserID, &user.Username, &user.TeamName, &user.IsActive)
 		if err != nil {
-			return domain.User{}, err
+			return nil, err
 		}
-	} else {
-		return domain.User{}, errors.New("user not found")
+		users = append(users, user)
 	}
-	return user, nil
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (s *UserStorage) Update(user domain.User) error {

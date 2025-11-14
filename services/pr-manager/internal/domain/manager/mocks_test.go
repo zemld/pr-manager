@@ -22,12 +22,21 @@ func newMockUserStorage() *mockUserStorage {
 	}
 }
 
-func (m *mockUserStorage) Select(userID string) (domain.User, error) {
-	user, ok := m.users[userID]
-	if !ok {
-		return domain.User{}, errNotFound
+func (m *mockUserStorage) Select(userID *string) ([]domain.User, error) {
+	if userID == nil {
+		// Return all users
+		users := make([]domain.User, 0, len(m.users))
+		for _, user := range m.users {
+			users = append(users, user)
+		}
+		return users, nil
 	}
-	return user, nil
+	// Return specific user
+	user, ok := m.users[*userID]
+	if !ok {
+		return []domain.User{}, nil
+	}
+	return []domain.User{user}, nil
 }
 
 func (m *mockUserStorage) Update(user domain.User) error {
@@ -54,12 +63,21 @@ func newMockTeamStorage() *mockTeamStorage {
 	}
 }
 
-func (m *mockTeamStorage) Select(teamName string) (domain.Team, error) {
-	team, ok := m.teams[teamName]
-	if !ok {
-		return domain.Team{}, errNotFound
+func (m *mockTeamStorage) Select(teamName *string) ([]domain.Team, error) {
+	if teamName == nil {
+		// Return all teams
+		teams := make([]domain.Team, 0, len(m.teams))
+		for _, team := range m.teams {
+			teams = append(teams, team)
+		}
+		return teams, nil
 	}
-	return team, nil
+	// Return specific team
+	team, ok := m.teams[*teamName]
+	if !ok {
+		return []domain.Team{}, nil
+	}
+	return []domain.Team{team}, nil
 }
 
 func (m *mockTeamStorage) Insert(team domain.Team) error {
@@ -78,12 +96,21 @@ func newMockPullRequestStorage() *mockPullRequestStorage {
 	}
 }
 
-func (m *mockPullRequestStorage) Select(pullRequestID string) (domain.PullRequest, error) {
-	pr, ok := m.prs[pullRequestID]
-	if !ok {
-		return domain.PullRequest{}, errNotFound
+func (m *mockPullRequestStorage) Select(pullRequestID *string) ([]domain.PullRequest, error) {
+	if pullRequestID == nil {
+		// Return all PRs
+		prs := make([]domain.PullRequest, 0, len(m.prs))
+		for _, pr := range m.prs {
+			prs = append(prs, pr)
+		}
+		return prs, nil
 	}
-	return pr, nil
+	// Return specific PR
+	pr, ok := m.prs[*pullRequestID]
+	if !ok {
+		return []domain.PullRequest{}, nil
+	}
+	return []domain.PullRequest{pr}, nil
 }
 
 func (m *mockPullRequestStorage) Create(pullRequest domain.PullRequest) error {

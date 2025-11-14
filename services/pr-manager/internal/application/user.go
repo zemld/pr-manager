@@ -21,3 +21,16 @@ func UpdateUserStatus(ctx context.Context, user domain.User) (domain.User, error
 	}, false)
 	return updatedUser, err
 }
+
+func GetUsers(ctx context.Context) ([]domain.User, error) {
+	var result []domain.User
+	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
+		userStorage := db.NewUserStorage(config, *tx)
+		userStorage.SetSelectQuery(db.SelectUser)
+		userManager := manager.NewUserManager(userStorage)
+		var err error
+		result, err = userManager.SelectUsers(nil)
+		return err
+	}, true)
+	return result, err
+}

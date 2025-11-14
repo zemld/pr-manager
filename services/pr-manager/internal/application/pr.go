@@ -53,6 +53,17 @@ func GetUserPullRequestsReviews(ctx context.Context, userID string) ([]domain.Pu
 	return result, err
 }
 
+func GetPullRequests(ctx context.Context) ([]domain.PullRequest, error) {
+	var result []domain.PullRequest
+	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
+		pullRequestManager := manager.NewPullRequestManager(configureStorage(tx))
+		var err error
+		result, err = pullRequestManager.GetPullRequests(nil)
+		return err
+	}, true)
+	return result, err
+}
+
 func configureStorage(tx *db.Transactor) *db.Storage {
 	userStorage := db.NewUserStorage(config, *tx)
 	userStorage.SetSelectQuery(db.SelectUser)

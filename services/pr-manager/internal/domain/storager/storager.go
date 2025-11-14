@@ -21,7 +21,7 @@ type UserStorager interface {
 }
 
 type UserSelector interface {
-	Select(userID string) (domain.User, error)
+	Select(userID *string) ([]domain.User, error)
 }
 
 type UserUpdater interface {
@@ -38,7 +38,7 @@ type TeamStorager interface {
 }
 
 type TeamSelector interface {
-	Select(teamName string) (domain.Team, error)
+	Select(teamName *string) ([]domain.Team, error)
 }
 
 type TeamInserter interface {
@@ -54,7 +54,7 @@ type PullRequestStorager interface {
 }
 
 type PullRequestSelector interface {
-	Select(pullRequestID string) (domain.PullRequest, error)
+	Select(pullRequestID *string) ([]domain.PullRequest, error)
 }
 
 type PullRequestCreator interface {

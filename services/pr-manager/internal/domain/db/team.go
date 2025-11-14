@@ -30,21 +30,35 @@ func (s *TeamStorage) SetSelectUserQuery(selectUserQuery string) {
 	s.selectUserQuery = selectUserQuery
 }
 
-func (s *TeamStorage) Select(teamName string) (domain.Team, error) {
-	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, teamName)
+func (s *TeamStorage) Select(teamName *string) ([]domain.Team, error) {
+	var filter any
+	if teamName != nil {
+		filter = *teamName
+	} else {
+		filter = nil
+	}
+
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, filter)
 	if err != nil {
-		return domain.Team{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	var team domain.Team
-	if rows.Next() {
+	var teams []domain.Team
+	for rows.Next() {
+		var team domain.Team
 		err = rows.Scan(&team.TeamName, &team.Members)
 		if err != nil {
-			return domain.Team{}, err
+			return nil, err
 		}
+		teams = append(teams, team)
 	}
-	return team, nil
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return teams, nil
 }
 
 func (s *TeamStorage) Insert(team domain.Team) error {
@@ -53,8 +67,9 @@ func (s *TeamStorage) Insert(team domain.Team) error {
 	userInserter.SetSelectQuery(SelectUser)
 
 	for _, member := range team.Members {
-		existingUser, err := userInserter.Select(member.UserID)
-		if err == nil && existingUser.UserID != "" {
+		userID := member.UserID
+		existingUsers, err := userInserter.Select(&userID)
+		if err == nil && len(existingUsers) > 0 && existingUsers[0].UserID != "" {
 			return fmt.Errorf("user with id %s is in another team", member.UserID)
 		}
 	}

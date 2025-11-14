@@ -52,7 +52,8 @@ func TestUserManager_SelectUser(t *testing.T) {
 			tt.setup(storage)
 
 			manager := NewUserManager(storage)
-			result, err := manager.SelectUser(tt.userID)
+			userIDPtr := &tt.userID
+			result, err := manager.SelectUser(userIDPtr)
 
 			if tt.wantErr {
 				if err == nil {
@@ -90,11 +91,17 @@ func TestUserManager_UpdateUserStatus(t *testing.T) {
 			user: createTestUser("user1", "testuser", "team1", false),
 			validate: func(t *testing.T, user domain.User, storage *mockUserStorage) {
 				// Check that user was updated in storage
-				updatedUser, err := storage.Select("user1")
+				userID := "user1"
+				updatedUsers, err := storage.Select(&userID)
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 					return
 				}
+				if len(updatedUsers) == 0 {
+					t.Error("expected user to be found")
+					return
+				}
+				updatedUser := updatedUsers[0]
 				if updatedUser.IsActive {
 					t.Error("expected user to be inactive after update")
 				}
@@ -109,11 +116,17 @@ func TestUserManager_UpdateUserStatus(t *testing.T) {
 			user: createTestUser("user1", "testuser", "team1", true),
 			validate: func(t *testing.T, user domain.User, storage *mockUserStorage) {
 				// Check that user was updated in storage
-				updatedUser, err := storage.Select("user1")
+				userID := "user1"
+				updatedUsers, err := storage.Select(&userID)
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 					return
 				}
+				if len(updatedUsers) == 0 {
+					t.Error("expected user to be found")
+					return
+				}
+				updatedUser := updatedUsers[0]
 				if !updatedUser.IsActive {
 					t.Error("expected user to be active after update")
 				}
@@ -186,7 +199,13 @@ func TestUserManager_UpdateUserStatus_SelectsUserFirst(t *testing.T) {
 	}
 
 	// Verify in storage
-	updatedUser, _ := storage.Select("user1")
+	userID := "user1"
+	updatedUsers, _ := storage.Select(&userID)
+	if len(updatedUsers) == 0 {
+		t.Error("expected user to be found")
+		return
+	}
+	updatedUser := updatedUsers[0]
 	if updatedUser.IsActive {
 		t.Error("expected user to be inactive after update in storage")
 	}

@@ -40,15 +40,23 @@ func (s *PullRequestStorage) SetUserPullRequestsReviewsQuery(query string) {
 	s.userPullRequestsReviewsQuery = query
 }
 
-func (s *PullRequestStorage) Select(pullRequestID string) (domain.PullRequest, error) {
-	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, pullRequestID)
+func (s *PullRequestStorage) Select(pullRequestID *string) ([]domain.PullRequest, error) {
+	var filter any
+	if pullRequestID != nil {
+		filter = *pullRequestID
+	} else {
+		filter = nil
+	}
+
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, filter)
 	if err != nil {
-		return domain.PullRequest{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	var pullRequest domain.PullRequest
-	if rows.Next() {
+	var pullRequests []domain.PullRequest
+	for rows.Next() {
+		var pullRequest domain.PullRequest
 		err = rows.Scan(
 			&pullRequest.ID,
 			&pullRequest.Name,
@@ -59,10 +67,16 @@ func (s *PullRequestStorage) Select(pullRequestID string) (domain.PullRequest, e
 			&pullRequest.MergedAt,
 		)
 		if err != nil {
-			return domain.PullRequest{}, err
+			return nil, err
 		}
+		pullRequests = append(pullRequests, pullRequest)
 	}
-	return pullRequest, nil
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pullRequests, nil
 }
 
 func (s *PullRequestStorage) Create(pullRequest domain.PullRequest) error {

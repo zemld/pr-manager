@@ -1,6 +1,8 @@
 package manager
 
 import (
+	"errors"
+
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 	"github.com/zemld/pr-manager/pr-manager/internal/domain/storager"
 )
@@ -21,10 +23,17 @@ func (m *TeamManager) AddTeam(team domain.Team) (domain.Team, error) {
 	return team, nil
 }
 
-func (m *TeamManager) GetTeam(teamName string) (domain.Team, error) {
-	team, err := m.TeamStorage.Select(teamName)
+func (m *TeamManager) GetTeam(teamName *string) (domain.Team, error) {
+	teams, err := m.TeamStorage.Select(teamName)
 	if err != nil {
 		return domain.Team{}, err
 	}
-	return team, nil
+	if len(teams) == 0 {
+		return domain.Team{}, errors.New("team not found")
+	}
+	return teams[0], nil
+}
+
+func (m *TeamManager) GetTeams(teamName *string) ([]domain.Team, error) {
+	return m.TeamStorage.Select(teamName)
 }
