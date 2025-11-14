@@ -8,11 +8,11 @@ import (
 )
 
 var config = db.Config{
-	Host:     os.Getenv("DB_HOST"),
-	User:     os.Getenv("DB_USER"),
-	Password: os.Getenv("DB_PASSWORD"),
-	Db:       os.Getenv("DB_NAME"),
-	Port:     os.Getenv("DB_PORT"),
+	Host:     os.Getenv("POSTGRES_HOST"),
+	User:     os.Getenv("POSTGRES_USER"),
+	Password: os.Getenv("POSTGRES_PASSWORD"),
+	Db:       os.Getenv("POSTGRES_DB"),
+	Port:     os.Getenv("POSTGRES_PORT"),
 }
 
 type TransactionExecutor struct {
