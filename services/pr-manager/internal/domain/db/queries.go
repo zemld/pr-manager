@@ -7,6 +7,7 @@ const (
 		username TEXT NOT NULL,
 		team_name TEXT NOT NULL,
 		is_active BOOLEAN NOT NULL DEFAULT TRUE,
+		team_deleted BOOLEAN NOT NULL DEFAULT FALSE,
 		PRIMARY KEY (id)
 	)
 	`
@@ -49,6 +50,7 @@ const (
 		) as members
 	FROM users 
 	WHERE ($1::text IS NULL OR team_name = $1)
+		AND team_deleted = FALSE
 	GROUP BY team_name
 	`
 
@@ -137,5 +139,9 @@ const (
 	FROM
 		users
 	WHERE ($1::text IS NULL OR id = $1)
+		AND team_deleted = FALSE
+	`
+	DeleteTeam = `
+	UPDATE users SET team_deleted = TRUE WHERE team_name = $1
 	`
 )

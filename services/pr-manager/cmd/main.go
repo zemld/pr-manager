@@ -20,6 +20,7 @@ func main() {
 
 	mux.HandleFunc("POST /team/add", handlers.AddTeamHandler)
 	mux.HandleFunc("GET /team/get", handlers.GetTeamHandler)
+	mux.HandleFunc("DELETE /team/delete", handlers.DeleteTeamHandler)
 
 	mux.HandleFunc("POST /users/setIsActive", handlers.SetUserActiveHandler)
 	mux.HandleFunc("GET /users/getReview", handlers.GetUserReviewsHandler)

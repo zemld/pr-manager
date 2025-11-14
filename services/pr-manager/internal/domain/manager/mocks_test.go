@@ -85,6 +85,14 @@ func (m *mockTeamStorage) Insert(team domain.Team) error {
 	return nil
 }
 
+func (m *mockTeamStorage) Delete(teamName string) error {
+	if _, ok := m.teams[teamName]; !ok {
+		return errNotFound
+	}
+	delete(m.teams, teamName)
+	return nil
+}
+
 // mockPullRequestStorage is a mock implementation of storager.PullRequestStorager
 type mockPullRequestStorage struct {
 	prs map[string]domain.PullRequest

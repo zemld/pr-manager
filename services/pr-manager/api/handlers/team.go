@@ -57,3 +57,29 @@ func GetTeamHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, team)
 }
+
+func DeleteTeamHandler(w http.ResponseWriter, r *http.Request) {
+	teamName := r.URL.Query().Get("name")
+	if teamName == "" {
+		writeError(w, http.StatusBadRequest, ErrorCodeNotFound, "name parameter is required")
+		return
+	}
+
+	existingTeam, err := application.GetTeam(r.Context(), &teamName)
+	if err != nil || existingTeam.TeamName == "" {
+		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+		return
+	}
+
+	err = application.DeleteTeam(r.Context(), teamName)
+	if err != nil {
+		if strings.Contains(err.Error(), "team not found") {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

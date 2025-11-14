@@ -12,6 +12,10 @@ type TeamGetter interface {
 	GetTeam(teamName string) (domain.Team, error)
 }
 
+type TeamDeleter interface {
+	DeleteTeam(teamName string) error
+}
+
 type UserUpdater interface {
 	UpdateUserStatus(user domain.User) (domain.User, error)
 }

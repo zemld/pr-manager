@@ -14,7 +14,7 @@ func AddTeam(ctx context.Context, team domain.Team) (domain.Team, error) {
 		teamStorage := db.NewTeamStorage(config, *tx)
 		teamStorage.SetInsertQuery(db.InsertUser)
 		teamStorage.SetSelectUserQuery(db.SelectUser)
-		teamManager := manager.NewTeamManager(teamStorage)
+		teamManager := manager.NewTeamManager(teamStorage, nil)
 		var err error
 		result, err = teamManager.AddTeam(team)
 		return err
@@ -27,7 +27,7 @@ func GetTeam(ctx context.Context, teamName *string) (domain.Team, error) {
 	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
 		teamStorage := db.NewTeamStorage(config, *tx)
 		teamStorage.SetSelectQuery(db.SelectTeam)
-		teamManager := manager.NewTeamManager(teamStorage)
+		teamManager := manager.NewTeamManager(teamStorage, nil)
 		var err error
 		result, err = teamManager.GetTeam(teamName)
 		return err
@@ -40,10 +40,26 @@ func GetTeams(ctx context.Context) ([]domain.Team, error) {
 	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
 		teamStorage := db.NewTeamStorage(config, *tx)
 		teamStorage.SetSelectQuery(db.SelectTeam)
-		teamManager := manager.NewTeamManager(teamStorage)
+		teamManager := manager.NewTeamManager(teamStorage, nil)
 		var err error
 		result, err = teamManager.GetTeams(nil)
 		return err
 	}, true)
 	return result, err
+}
+
+func DeleteTeam(ctx context.Context, teamName string) error {
+	return executor.withTransaction(ctx, func(tx *db.Transactor) error {
+		teamStorage := db.NewTeamStorage(config, *tx)
+		teamStorage.SetSelectQuery(db.SelectTeam)
+		teamStorage.SetDeleteQuery(db.DeleteTeam)
+
+		pullRequestStorage := db.NewPullRequestStorage(config, *tx)
+		pullRequestStorage.SetSelectQuery(db.SelectPullRequest)
+		pullRequestStorage.SetReassignQuery(db.ReassignPullRequest)
+		pullRequestStorage.SetUserPullRequestsReviewsQuery(db.UserPullRequestsReviews)
+
+		teamManager := manager.NewTeamManager(teamStorage, pullRequestStorage)
+		return teamManager.DeleteTeam(teamName)
+	}, false)
 }

@@ -35,6 +35,7 @@ type UserInserter interface {
 type TeamStorager interface {
 	TeamSelector
 	TeamInserter
+	TeamDeleter
 }
 
 type TeamSelector interface {
@@ -43,6 +44,10 @@ type TeamSelector interface {
 
 type TeamInserter interface {
 	Insert(team domain.Team) error
+}
+
+type TeamDeleter interface {
+	Delete(teamName string) error
 }
 
 type PullRequestStorager interface {

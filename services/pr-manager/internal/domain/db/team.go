@@ -12,6 +12,7 @@ type TeamStorage struct {
 	selectQuery     string
 	insertQuery     string
 	selectUserQuery string
+	deleteQuery     string
 }
 
 func NewTeamStorage(config Config, transactor Transactor) *TeamStorage {
@@ -28,6 +29,10 @@ func (s *TeamStorage) SetInsertQuery(insertQuery string) {
 
 func (s *TeamStorage) SetSelectUserQuery(selectUserQuery string) {
 	s.selectUserQuery = selectUserQuery
+}
+
+func (s *TeamStorage) SetDeleteQuery(deleteQuery string) {
+	s.deleteQuery = deleteQuery
 }
 
 func (s *TeamStorage) Select(teamName *string) ([]domain.Team, error) {
@@ -84,6 +89,14 @@ func (s *TeamStorage) Insert(team domain.Team) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (s *TeamStorage) Delete(teamName string) error {
+	_, err := s.Transactor.Exec(s.ctx, s.deleteQuery, teamName)
+	if err != nil {
+		return err
 	}
 	return nil
 }
