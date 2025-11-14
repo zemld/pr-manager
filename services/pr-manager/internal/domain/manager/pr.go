@@ -27,9 +27,6 @@ func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (
 		return domain.PullRequest{}, err
 	}
 	possibleAssigners := m.filterReviewers(m.getActiveUserIDsFromTeam(authorTeamMembers), pullRequest.AuthorID)
-	if len(possibleAssigners) == 0 {
-		return domain.PullRequest{}, errors.New("no possible assigners")
-	}
 	assigners := make([]string, 0, maxAssigners)
 	for range maxAssigners {
 		if len(possibleAssigners) == 0 {
@@ -38,7 +35,11 @@ func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (
 		assigners = append(assigners, m.getRandomUserID(possibleAssigners))
 		possibleAssigners = m.filterReviewers(possibleAssigners, assigners...)
 	}
-	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(assigners, ", "))
+	if len(assigners) == 0 {
+		pullRequest.AssignedReviewers = "[]"
+	} else {
+		pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(assigners, ", "))
+	}
 
 	err = m.Storage.PullRequestStorage.Create(pullRequest)
 	if err != nil {
@@ -57,25 +58,26 @@ func (m *PullRequestManager) MergePullRequest(pullRequest domain.PullRequest) (d
 	return m.Storage.PullRequestStorage.Select(pullRequest.ID)
 }
 
-func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReviewerID string) (domain.PullRequest, error) {
+func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReviewerID string) (domain.PullRequest, string, error) {
 	pullRequest, err := m.Storage.PullRequestStorage.Select(pullRequestID)
 	if err != nil {
-		return domain.PullRequest{}, err
+		return domain.PullRequest{}, "", err
 	}
 
 	if pullRequest.Status == domain.Merged {
-		return domain.PullRequest{}, errors.New("pull request is already merged")
+		return domain.PullRequest{}, "", errors.New("pull request is already merged")
 	}
 
 	oldReviewerTeamMembers, err := m.getReviewerTeamMembers(oldReviewerID)
 	if err != nil {
-		return domain.PullRequest{}, err
+		return domain.PullRequest{}, "", err
 	}
 
 	oldReviewers := strings.Split(strings.Trim(pullRequest.AssignedReviewers, "[]"), ",")
 	var anotherReviewer string
 	for _, reviewer := range oldReviewers {
-		if strings.Trim(reviewer, " ") != oldReviewerID {
+		reviewer = strings.Trim(reviewer, " ")
+		if reviewer != oldReviewerID {
 			anotherReviewer = reviewer
 			break
 		}
@@ -83,21 +85,28 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 
 	newPossibleReviewers := m.filterReviewers(m.getActiveUserIDsFromTeam(oldReviewerTeamMembers), oldReviewerID, pullRequest.AuthorID, anotherReviewer)
 
-	newReviewers := make([]string, 0, maxAssigners)
+	updatedReviewers := make([]string, 0, maxAssigners)
 	if anotherReviewer != "" {
-		newReviewers = append(newReviewers, anotherReviewer)
+		updatedReviewers = append(updatedReviewers, anotherReviewer)
 	}
+	newReviewer := ""
 	if len(newPossibleReviewers) > 0 {
-		newReviewers = append(newReviewers, m.getRandomUserID(newPossibleReviewers))
+		newReviewer = m.getRandomUserID(newPossibleReviewers)
+		updatedReviewers = append(updatedReviewers, newReviewer)
 	}
-	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(newReviewers, ", "))
+	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(updatedReviewers, ", "))
 
 	err = m.Storage.PullRequestStorage.Reassign(pullRequest)
 	if err != nil {
-		return domain.PullRequest{}, err
+		return domain.PullRequest{}, "", err
 	}
 
-	return m.Storage.PullRequestStorage.Select(pullRequestID)
+	updatedPullRequest, err := m.Storage.PullRequestStorage.Select(pullRequestID)
+	if err != nil {
+		return domain.PullRequest{}, "", err
+	}
+
+	return updatedPullRequest, newReviewer, nil
 }
 
 func (m *PullRequestManager) getReviewerTeamMembers(reviewerID string) ([]domain.TeamMember, error) {

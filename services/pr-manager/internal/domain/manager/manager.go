@@ -29,7 +29,7 @@ type PullRequestMerger interface {
 }
 
 type PullRequestReassigner interface {
-	ReassignPullRequest(pullRequestID string, oldReviewerID string) (domain.PullRequest, error)
+	ReassignPullRequest(pullRequestID string, oldReviewerID string) (domain.PullRequest, string, error)
 }
 
 type UserPullRequestReviewer interface {

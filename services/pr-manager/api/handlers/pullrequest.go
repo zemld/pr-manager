@@ -61,7 +61,7 @@ func ReassignPullRequestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := application.ReassignPullRequest(r.Context(), req.PullRequestID, req.OldUserID)
+	result, newReviewer, err := application.ReassignPullRequest(r.Context(), req.PullRequestID, req.OldUserID)
 	if err != nil {
 		if strings.Contains(err.Error(), "already merged") || strings.Contains(err.Error(), "merged") {
 			writeError(w, http.StatusConflict, ErrorCodePRMerged, "cannot reassign on merged PR")
@@ -81,18 +81,8 @@ func ReassignPullRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	prResponse := domainPRToResponse(result)
 
-	var replacedBy string
-	newReviewers := strings.Split(strings.Trim(result.AssignedReviewers, "[]"), ",")
-	for i := len(newReviewers) - 1; i >= 0; i-- {
-		reviewer := strings.TrimSpace(newReviewers[i])
-		if reviewer != "" && reviewer != req.OldUserID {
-			replacedBy = reviewer
-			break
-		}
-	}
-
 	writeJSON(w, http.StatusOK, ReassignResponse{
 		PR:         prResponse,
-		ReplacedBy: replacedBy,
+		ReplacedBy: newReviewer,
 	})
 }

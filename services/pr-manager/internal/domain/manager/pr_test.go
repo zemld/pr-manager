@@ -3,6 +3,7 @@ package manager
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 	"github.com/zemld/pr-manager/pr-manager/internal/domain/db"
@@ -95,9 +96,13 @@ func TestPullRequestManager_CreatePullRequest(t *testing.T) {
 				storage.TeamStorage.Insert(team)
 				storage.UserStorage.Insert(createTestUser("user1", "author", "team1", true))
 			},
-			pr:      createTestPR("pr1", "Test PR", "user1", domain.Open, ""),
-			wantErr: true,
-			errMsg:  "no possible assigners",
+			pr: createTestPR("pr1", "Test PR", "user1", domain.Open, ""),
+			validate: func(t *testing.T, pr domain.PullRequest, storage *db.Storage) {
+				// Should create PR with empty reviewers list
+				if pr.AssignedReviewers != "[]" {
+					t.Errorf("expected empty reviewers list [], got %s", pr.AssignedReviewers)
+				}
+			},
 		},
 		{
 			name: "create PR with inactive reviewers (should not assign inactive)",
@@ -114,9 +119,13 @@ func TestPullRequestManager_CreatePullRequest(t *testing.T) {
 				storage.UserStorage.Insert(createTestUser("user2", "reviewer1", "team1", false))
 				storage.UserStorage.Insert(createTestUser("user3", "reviewer2", "team1", false))
 			},
-			pr:      createTestPR("pr1", "Test PR", "user1", domain.Open, ""),
-			wantErr: true,
-			errMsg:  "no possible assigners",
+			pr: createTestPR("pr1", "Test PR", "user1", domain.Open, ""),
+			validate: func(t *testing.T, pr domain.PullRequest, storage *db.Storage) {
+				// Should create PR with empty reviewers list (no active reviewers available)
+				if pr.AssignedReviewers != "[]" {
+					t.Errorf("expected empty reviewers list [], got %s", pr.AssignedReviewers)
+				}
+			},
 		},
 		{
 			name: "create PR with mix of active and inactive reviewers",
@@ -146,6 +155,29 @@ func TestPullRequestManager_CreatePullRequest(t *testing.T) {
 					t.Error("inactive user3 should not be assigned")
 				}
 			},
+		},
+		{
+			name: "create PR with existing ID should fail",
+			setup: func(storage *db.Storage) {
+				// Create team with 3 active members
+				team := createTestTeam("team1", []domain.TeamMember{
+					{UserID: "user1", Username: "author", IsActive: true},
+					{UserID: "user2", Username: "reviewer1", IsActive: true},
+					{UserID: "user3", Username: "reviewer2", IsActive: true},
+				})
+				storage.TeamStorage.Insert(team)
+
+				storage.UserStorage.Insert(createTestUser("user1", "author", "team1", true))
+				storage.UserStorage.Insert(createTestUser("user2", "reviewer1", "team1", true))
+				storage.UserStorage.Insert(createTestUser("user3", "reviewer2", "team1", true))
+
+				// Create existing PR
+				existingPR := createTestPR("pr1", "Existing PR", "user1", domain.Open, "[user2, user3]")
+				storage.PullRequestStorage.Create(existingPR)
+			},
+			pr:      createTestPR("pr1", "New PR", "user1", domain.Open, ""),
+			wantErr: true,
+			errMsg:  "PR id already exists",
 		},
 	}
 
@@ -207,12 +239,22 @@ func TestPullRequestManager_MergePullRequest(t *testing.T) {
 			name: "merge already merged PR (idempotent)",
 			setup: func(storage *db.Storage) {
 				pr := createTestPR("pr1", "Test PR", "user1", domain.Merged, "[user2, user3]")
+				// Set merged_at to a specific time to verify it doesn't change
+				mergedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+				pr.MergedAt = &mergedTime
 				storage.PullRequestStorage.Create(pr)
 			},
 			pr: createTestPR("pr1", "Test PR", "user1", domain.Merged, "[user2, user3]"),
 			validate: func(t *testing.T, pr domain.PullRequest) {
 				if pr.Status != domain.Merged {
 					t.Errorf("expected status Merged, got %v", pr.Status)
+				}
+				// Verify merged_at hasn't changed (idempotent)
+				expectedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+				if pr.MergedAt == nil {
+					t.Error("expected merged_at to be set")
+				} else if !pr.MergedAt.Equal(expectedTime) {
+					t.Errorf("expected merged_at to remain unchanged, got %v", pr.MergedAt)
 				}
 			},
 		},
@@ -434,7 +476,7 @@ func TestPullRequestManager_ReassignPullRequest(t *testing.T) {
 			tt.setup(storage)
 
 			manager := NewPullRequestManager(storage)
-			result, err := manager.ReassignPullRequest(tt.prID, tt.oldReviewerID)
+			result, _, err := manager.ReassignPullRequest(tt.prID, tt.oldReviewerID)
 
 			if tt.wantErr {
 				if err == nil {

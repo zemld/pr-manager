@@ -30,15 +30,16 @@ func MergePullRequest(ctx context.Context, pullRequest domain.PullRequest) (doma
 	return result, err
 }
 
-func ReassignPullRequest(ctx context.Context, pullRequestID string, oldReviewerID string) (domain.PullRequest, error) {
+func ReassignPullRequest(ctx context.Context, pullRequestID string, oldReviewerID string) (domain.PullRequest, string, error) {
 	var result domain.PullRequest
+	var newReviewer string
 	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
 		pullRequestManager := manager.NewPullRequestManager(configureStorage(tx))
 		var err error
-		result, err = pullRequestManager.ReassignPullRequest(pullRequestID, oldReviewerID)
+		result, newReviewer, err = pullRequestManager.ReassignPullRequest(pullRequestID, oldReviewerID)
 		return err
 	}, false)
-	return result, err
+	return result, newReviewer, err
 }
 
 func GetUserPullRequestsReviews(ctx context.Context, userID string) ([]domain.PullRequest, error) {

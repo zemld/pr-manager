@@ -87,6 +87,10 @@ func (m *mockPullRequestStorage) Select(pullRequestID string) (domain.PullReques
 }
 
 func (m *mockPullRequestStorage) Create(pullRequest domain.PullRequest) error {
+	// Simulate ON CONFLICT DO NOTHING - if PR already exists, return error
+	if _, exists := m.prs[pullRequest.ID]; exists {
+		return errors.New("PR id already exists")
+	}
 	m.prs[pullRequest.ID] = pullRequest
 	return nil
 }
@@ -96,8 +100,14 @@ func (m *mockPullRequestStorage) Merge(pullRequest domain.PullRequest) error {
 	if !ok {
 		return errNotFound
 	}
-	pr.Status = domain.Merged
-	m.prs[pullRequest.ID] = pr
+	// Simulate idempotent merge - only update if not already merged
+	if pr.Status != domain.Merged {
+		pr.Status = domain.Merged
+		now := time.Now()
+		pr.MergedAt = &now
+		m.prs[pullRequest.ID] = pr
+	}
+	// If already merged, do nothing (idempotent)
 	return nil
 }
 

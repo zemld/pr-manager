@@ -13,7 +13,7 @@ const (
 	CreatePullRequestsStatusesTable = `
 	CREATE TABLE IF NOT EXISTS pull_requests_statuses (
 		id SERIAL,
-		status TEXT NOT NULL,
+		status TEXT NOT NULL UNIQUE,
 		PRIMARY KEY (id)
 	)
 	`
@@ -34,6 +34,7 @@ const (
 
 	FillPullRequestsStatusesTable = `
 	INSERT INTO pull_requests_statuses (status) VALUES ('open'), ('merged')
+	ON CONFLICT (status) DO NOTHING
 	`
 
 	SelectTeam = `
@@ -56,10 +57,7 @@ const (
 	`
 	InsertUser = `
 	INSERT INTO users (id, username, team_name, is_active) VALUES ($1, $2, $3, $4)
-	ON CONFLICT (id) DO UPDATE SET 
-		username = EXCLUDED.username,
-		team_name = EXCLUDED.team_name,
-		is_active = EXCLUDED.is_active
+	ON CONFLICT (id) DO NOTHING
 	`
 
 	CreatePullRequest = `
@@ -67,7 +65,7 @@ const (
 			pull_requests
 			(id, name, author_id, status_id, assigned_reviewers, created_at, merged_at)
 		VALUES
-			($1, $2, $3, (SELECT id FROM pull_requests_statuses WHERE status = 'open'), $4, NOW(), NULL)
+			($1, $2, $3, (SELECT id FROM pull_requests_statuses WHERE status = 'open' LIMIT 1), $4, NOW(), NULL)
 		ON CONFLICT
 			(id) DO NOTHING
 	`
@@ -75,11 +73,11 @@ const (
 		UPDATE
 			pull_requests
 		SET
-			status_id = (SELECT id FROM pull_requests_statuses WHERE status = 'merged'),
+			status_id = (SELECT id FROM pull_requests_statuses WHERE status = 'merged' LIMIT 1),
 			merged_at = NOW()
 		WHERE
 			id = $1
-			AND status_id != (SELECT id FROM pull_requests_statuses WHERE status = 'merged')
+			AND status_id != (SELECT id FROM pull_requests_statuses WHERE status = 'merged' LIMIT 1)
 	`
 	ReassignPullRequest = `
 	UPDATE
@@ -100,6 +98,7 @@ const (
 			FROM
 				pull_requests_statuses
 			WHERE id = pull_requests.status_id
+			LIMIT 1
 		) as status,
 		assigned_reviewers,
 		created_at,
@@ -120,6 +119,7 @@ const (
 			FROM
 				pull_requests_statuses
 			WHERE id = pull_requests.status_id
+			LIMIT 1
 		) as status,
 		assigned_reviewers,
 		created_at,
