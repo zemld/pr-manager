@@ -15,7 +15,7 @@ func CreatePullRequest(ctx context.Context, pullRequest domain.PullRequest) (dom
 		var err error
 		result, err = pullRequestManager.CreatePullRequest(pullRequest)
 		return err
-	})
+	}, false)
 	return result, err
 }
 
@@ -26,7 +26,7 @@ func MergePullRequest(ctx context.Context, pullRequest domain.PullRequest) (doma
 		var err error
 		result, err = pullRequestManager.MergePullRequest(pullRequest)
 		return err
-	})
+	}, false)
 	return result, err
 }
 
@@ -37,7 +37,7 @@ func ReassignPullRequest(ctx context.Context, pullRequestID string, oldReviewerI
 		var err error
 		result, err = pullRequestManager.ReassignPullRequest(pullRequestID, oldReviewerID)
 		return err
-	})
+	}, false)
 	return result, err
 }
 
@@ -48,7 +48,7 @@ func GetUserPullRequestsReviews(ctx context.Context, userID string) ([]domain.Pu
 		var err error
 		result, err = pullRequestManager.UserPullRequestsReviews(userID)
 		return err
-	})
+	}, true)
 	return result, err
 }
 

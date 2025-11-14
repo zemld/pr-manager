@@ -18,6 +18,6 @@ func UpdateUserStatus(ctx context.Context, user domain.User) (domain.User, error
 		var err error
 		updatedUser, err = userManager.UpdateUserStatus(user)
 		return err
-	})
+	}, false)
 	return updatedUser, err
 }

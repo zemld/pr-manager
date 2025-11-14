@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/zemld/pr-manager/pr-manager/internal/application"
@@ -40,8 +41,8 @@ func GetUserReviewsHandler(w http.ResponseWriter, r *http.Request) {
 
 	prs, err := application.GetUserPullRequestsReviews(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
-		return
+		log.Printf("error getting user pull requests reviews: %v\n", err)
+		prs = []domain.PullRequest{}
 	}
 
 	shortPRs := make([]PullRequestShortResponse, len(prs))

@@ -22,7 +22,7 @@ func (s *TeamStorage) SetInsertQuery(insertQuery string) {
 }
 
 func (s *TeamStorage) Select(teamName string) (domain.Team, error) {
-	rows, err := s.tx.Query(s.ctx, s.selectQuery, teamName)
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, teamName)
 	if err != nil {
 		return domain.Team{}, err
 	}

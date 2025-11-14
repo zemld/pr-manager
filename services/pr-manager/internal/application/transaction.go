@@ -25,16 +25,22 @@ func NewTransactionExecutor(config db.Config) *TransactionExecutor {
 
 var executor = NewTransactionExecutor(config)
 
-func (e *TransactionExecutor) withTransaction(ctx context.Context, fn func(*db.Transactor) error) error {
-	transactor := db.NewTransactor(e.config, ctx)
+func (e *TransactionExecutor) withTransaction(ctx context.Context, fn func(*db.Transactor) error, isReadOnly bool) error {
+	transactor := db.NewTransactor(e.config, ctx, isReadOnly)
 	if err := transactor.Begin(ctx); err != nil {
 		return err
 	}
-	defer transactor.Rollback()
+	if isReadOnly {
+		defer transactor.Commit()
+	} else {
+		defer transactor.Rollback()
+	}
 
 	if err := fn(transactor); err != nil {
 		return err
 	}
-
-	return transactor.Commit()
+	if !isReadOnly {
+		return transactor.Commit()
+	}
+	return nil
 }

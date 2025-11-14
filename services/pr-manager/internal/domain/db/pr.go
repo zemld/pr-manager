@@ -37,7 +37,7 @@ func (s *PullRequestStorage) SetUserPullRequestsReviewsQuery(query string) {
 }
 
 func (s *PullRequestStorage) Select(pullRequestID string) (domain.PullRequest, error) {
-	rows, err := s.tx.Query(s.ctx, s.selectQuery, pullRequestID)
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, pullRequestID)
 	if err != nil {
 		return domain.PullRequest{}, err
 	}
@@ -62,7 +62,7 @@ func (s *PullRequestStorage) Select(pullRequestID string) (domain.PullRequest, e
 }
 
 func (s *PullRequestStorage) Create(pullRequest domain.PullRequest) error {
-	_, err := s.tx.Exec(s.ctx, s.createQuery,
+	_, err := s.Transactor.Exec(s.ctx, s.createQuery,
 		pullRequest.ID,
 		pullRequest.Name,
 		pullRequest.AuthorID,
@@ -75,7 +75,7 @@ func (s *PullRequestStorage) Create(pullRequest domain.PullRequest) error {
 }
 
 func (s *PullRequestStorage) Merge(pullRequest domain.PullRequest) error {
-	_, err := s.tx.Exec(s.ctx, s.mergeQuery,
+	_, err := s.Transactor.Exec(s.ctx, s.mergeQuery,
 		pullRequest.ID,
 	)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *PullRequestStorage) Merge(pullRequest domain.PullRequest) error {
 }
 
 func (s *PullRequestStorage) Reassign(pullRequest domain.PullRequest) error {
-	_, err := s.tx.Exec(s.ctx, s.reassignQuery,
+	_, err := s.Transactor.Exec(s.ctx, s.reassignQuery,
 		pullRequest.ID,
 		pullRequest.AssignedReviewers,
 	)
@@ -96,7 +96,7 @@ func (s *PullRequestStorage) Reassign(pullRequest domain.PullRequest) error {
 }
 
 func (s *PullRequestStorage) SelectUserPullRequestsReviews(userID string) ([]domain.PullRequest, error) {
-	rows, err := s.tx.Query(s.ctx, s.userPullRequestsReviewsQuery, userID)
+	rows, err := s.Transactor.Query(s.ctx, s.userPullRequestsReviewsQuery, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,5 +119,10 @@ func (s *PullRequestStorage) SelectUserPullRequestsReviews(userID string) ([]dom
 		}
 		pullRequests = append(pullRequests, pr)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return pullRequests, nil
 }

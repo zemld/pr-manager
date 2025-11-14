@@ -17,7 +17,7 @@ func AddTeam(ctx context.Context, team domain.Team) (domain.Team, error) {
 		var err error
 		result, err = teamManager.AddTeam(team)
 		return err
-	})
+	}, false)
 	return result, err
 }
 
@@ -30,6 +30,6 @@ func GetTeam(ctx context.Context, teamName string) (domain.Team, error) {
 		var err error
 		result, err = teamManager.GetTeam(teamName)
 		return err
-	})
+	}, true)
 	return result, err
 }

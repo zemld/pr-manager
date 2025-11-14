@@ -31,7 +31,7 @@ func (s *UserStorage) SetInsertQuery(insertQuery string) {
 }
 
 func (s *UserStorage) Select(userID string) (domain.User, error) {
-	rows, err := s.tx.Query(s.ctx, s.selectQuery, userID)
+	rows, err := s.Transactor.Query(s.ctx, s.selectQuery, userID)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -50,7 +50,7 @@ func (s *UserStorage) Select(userID string) (domain.User, error) {
 }
 
 func (s *UserStorage) Update(user domain.User) error {
-	_, err := s.tx.Exec(s.ctx, s.updateQuery, user.IsActive, user.UserID)
+	_, err := s.Transactor.Exec(s.ctx, s.updateQuery, user.IsActive, user.UserID)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (s *UserStorage) Update(user domain.User) error {
 }
 
 func (s *UserStorage) Insert(user domain.User) error {
-	_, err := s.tx.Exec(s.ctx, s.insertQuery, user.UserID, user.Username, user.TeamName, user.IsActive)
+	_, err := s.Transactor.Exec(s.ctx, s.insertQuery, user.UserID, user.Username, user.TeamName, user.IsActive)
 	if err != nil {
 		return err
 	}
