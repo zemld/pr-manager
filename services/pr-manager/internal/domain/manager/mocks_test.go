@@ -169,7 +169,7 @@ func createTestPR(id, name, authorID string, status domain.PullRequestStatus, re
 			Status:   status,
 		},
 		AssignedReviewers: reviewers,
-		CreatedAt:         time.Now(),
-		MergedAt:          time.Time{},
+		CreatedAt:         func() *time.Time { t := time.Now(); return &t }(),
+		MergedAt:          nil,
 	}
 }

@@ -1,6 +1,8 @@
 package db
 
 import (
+	"errors"
+
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 )
 
@@ -41,6 +43,8 @@ func (s *UserStorage) Select(userID string) (domain.User, error) {
 		if err != nil {
 			return domain.User{}, err
 		}
+	} else {
+		return domain.User{}, errors.New("user not found")
 	}
 	return user, nil
 }
