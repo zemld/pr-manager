@@ -108,7 +108,10 @@ const (
 	FROM
 		pull_requests
 	WHERE
-		assigned_reviewers LIKE '%' || $1 || '%'
+		assigned_reviewers LIKE '[' || $1 || ',%'
+		OR assigned_reviewers LIKE '%, ' || $1 || ',%'
+		OR assigned_reviewers LIKE '%, ' || $1 || ']'
+		OR assigned_reviewers = '[' || $1 || ']'
 	`
 	SelectPullRequest = `
 	SELECT

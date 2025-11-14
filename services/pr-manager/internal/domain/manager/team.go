@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -32,7 +31,7 @@ func (m *TeamManager) GetTeam(teamName *string) (domain.Team, error) {
 		return domain.Team{}, err
 	}
 	if len(teams) == 0 {
-		return domain.Team{}, errors.New("team not found")
+		return domain.Team{}, domain.ErrTeamNotFound
 	}
 	return teams[0], nil
 }
@@ -48,7 +47,7 @@ func (m *TeamManager) DeleteTeam(teamName string) error {
 		return err
 	}
 	if len(teams) == 0 {
-		return errors.New("team not found")
+		return domain.ErrTeamNotFound
 	}
 	team := teams[0]
 

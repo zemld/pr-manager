@@ -1,8 +1,6 @@
 package manager
 
 import (
-	"errors"
-
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 	"github.com/zemld/pr-manager/pr-manager/internal/domain/storager"
 )
@@ -37,7 +35,7 @@ func (m *UserManager) SelectUser(userID *string) (domain.User, error) {
 		return domain.User{}, err
 	}
 	if len(users) == 0 {
-		return domain.User{}, errors.New("user not found")
+		return domain.User{}, domain.ErrUserNotFound
 	}
 	return users[0], nil
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -23,7 +24,11 @@ func SetUserActiveHandler(w http.ResponseWriter, r *http.Request) {
 
 	result, err := application.UpdateUserStatus(r.Context(), user)
 	if err != nil {
-		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrNotFound) {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
 		return
 	}
 

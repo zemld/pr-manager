@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"errors"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -43,6 +42,9 @@ func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (
 
 	err = m.Storage.PullRequestStorage.Create(pullRequest)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return domain.PullRequest{}, domain.ErrPRExists
+		}
 		return domain.PullRequest{}, err
 	}
 
@@ -51,7 +53,7 @@ func (m *PullRequestManager) CreatePullRequest(pullRequest domain.PullRequest) (
 		return domain.PullRequest{}, err
 	}
 	if len(prs) == 0 {
-		return domain.PullRequest{}, errors.New("pull request not found")
+		return domain.PullRequest{}, domain.ErrNotFound
 	}
 	return prs[0], nil
 }
@@ -67,7 +69,7 @@ func (m *PullRequestManager) MergePullRequest(pullRequest domain.PullRequest) (d
 		return domain.PullRequest{}, err
 	}
 	if len(prs) == 0 {
-		return domain.PullRequest{}, errors.New("pull request not found")
+		return domain.PullRequest{}, domain.ErrNotFound
 	}
 	return prs[0], nil
 }
@@ -78,12 +80,12 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 		return domain.PullRequest{}, "", err
 	}
 	if len(prs) == 0 {
-		return domain.PullRequest{}, "", errors.New("pull request not found")
+		return domain.PullRequest{}, "", domain.ErrNotFound
 	}
 	pullRequest := prs[0]
 
 	if pullRequest.Status == domain.Merged {
-		return domain.PullRequest{}, "", errors.New("pull request is already merged")
+		return domain.PullRequest{}, "", domain.ErrPRMerged
 	}
 
 	oldReviewerTeamMembers, err := m.getReviewerTeamMembers(oldReviewerID)
@@ -93,12 +95,17 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 
 	oldReviewers := strings.Split(strings.Trim(pullRequest.AssignedReviewers, "[]"), ",")
 	var anotherReviewer string
+	foundOldReviewer := false
 	for _, reviewer := range oldReviewers {
 		reviewer = strings.Trim(reviewer, " ")
-		if reviewer != oldReviewerID {
+		if reviewer == oldReviewerID {
+			foundOldReviewer = true
+		} else if reviewer != "" {
 			anotherReviewer = reviewer
-			break
 		}
+	}
+	if !foundOldReviewer {
+		return domain.PullRequest{}, "", domain.ErrNotAssigned
 	}
 
 	newPossibleReviewers := m.filterReviewers(m.getActiveUserIDsFromTeam(oldReviewerTeamMembers), oldReviewerID, pullRequest.AuthorID, anotherReviewer)
@@ -111,6 +118,9 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 	if len(newPossibleReviewers) > 0 {
 		newReviewer = m.getRandomUserID(newPossibleReviewers)
 		updatedReviewers = append(updatedReviewers, newReviewer)
+	} else if len(updatedReviewers) == 0 {
+		// No replacement candidate available and no other reviewer
+		return domain.PullRequest{}, "", domain.ErrNoCandidate
 	}
 	pullRequest.AssignedReviewers = fmt.Sprintf("[%s]", strings.Join(updatedReviewers, ", "))
 
@@ -124,7 +134,7 @@ func (m *PullRequestManager) ReassignPullRequest(pullRequestID string, oldReview
 		return domain.PullRequest{}, "", err
 	}
 	if len(updatedPRs) == 0 {
-		return domain.PullRequest{}, "", errors.New("pull request not found")
+		return domain.PullRequest{}, "", domain.ErrNotFound
 	}
 	updatedPullRequest := updatedPRs[0]
 
@@ -137,7 +147,7 @@ func (m *PullRequestManager) getReviewerTeamMembers(reviewerID string) ([]domain
 		return nil, err
 	}
 	if len(users) == 0 {
-		return nil, errors.New("reviewer not found")
+		return nil, domain.ErrReviewerNotFound
 	}
 	reviewer := users[0]
 
@@ -147,7 +157,7 @@ func (m *PullRequestManager) getReviewerTeamMembers(reviewerID string) ([]domain
 		return nil, err
 	}
 	if len(teams) == 0 {
-		return nil, errors.New("team not found")
+		return nil, domain.ErrTeamNotFound
 	}
 	reviewerTeam := teams[0]
 
@@ -191,7 +201,7 @@ func (m *PullRequestManager) GetPullRequest(pullRequestID *string) (domain.PullR
 		return domain.PullRequest{}, err
 	}
 	if len(prs) == 0 {
-		return domain.PullRequest{}, errors.New("pull request not found")
+		return domain.PullRequest{}, domain.ErrNotFound
 	}
 	return prs[0], nil
 }

@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/zemld/pr-manager/pr-manager/internal/application"
+	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 )
 
 func AddTeamHandler(w http.ResponseWriter, r *http.Request) {
@@ -25,11 +26,11 @@ func AddTeamHandler(w http.ResponseWriter, r *http.Request) {
 	team := requestToDomainTeam(req)
 	result, err := application.AddTeam(r.Context(), team)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
-			if strings.Contains(err.Error(), "user with id") {
-				writeError(w, http.StatusBadRequest, ErrorCodeNotFound, err.Error())
-				return
-			}
+		if errors.Is(err, domain.ErrUserInAnotherTeam) {
+			writeError(w, http.StatusBadRequest, ErrorCodeNotFound, err.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrTeamExists) {
 			writeError(w, http.StatusBadRequest, ErrorCodeTeamExists, "team_name already exists")
 			return
 		}
@@ -50,7 +51,15 @@ func GetTeamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	team, err := application.GetTeam(r.Context(), &teamName)
-	if err != nil || team.TeamName == "" {
+	if err != nil {
+		if errors.Is(err, domain.ErrTeamNotFound) || errors.Is(err, domain.ErrNotFound) {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
+		return
+	}
+	if team.TeamName == "" {
 		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
 		return
 	}
@@ -66,14 +75,22 @@ func DeleteTeamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	existingTeam, err := application.GetTeam(r.Context(), &teamName)
-	if err != nil || existingTeam.TeamName == "" {
+	if err != nil {
+		if errors.Is(err, domain.ErrTeamNotFound) || errors.Is(err, domain.ErrNotFound) {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
+		return
+	}
+	if existingTeam.TeamName == "" {
 		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
 		return
 	}
 
 	err = application.DeleteTeam(r.Context(), teamName)
 	if err != nil {
-		if strings.Contains(err.Error(), "team not found") {
+		if errors.Is(err, domain.ErrTeamNotFound) || errors.Is(err, domain.ErrNotFound) {
 			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
 			return
 		}

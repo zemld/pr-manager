@@ -1,8 +1,6 @@
 package db
 
 import (
-	"fmt"
-
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 )
 
@@ -75,7 +73,7 @@ func (s *TeamStorage) Insert(team domain.Team) error {
 		userID := member.UserID
 		existingUsers, err := userInserter.Select(&userID)
 		if err == nil && len(existingUsers) > 0 && existingUsers[0].UserID != "" {
-			return fmt.Errorf("user with id %s is in another team", member.UserID)
+			return domain.ErrUserInAnotherTeam
 		}
 	}
 

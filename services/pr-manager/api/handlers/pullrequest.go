@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/zemld/pr-manager/pr-manager/internal/application"
+	"github.com/zemld/pr-manager/pr-manager/internal/domain"
 )
 
 func CreatePullRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,11 +19,11 @@ func CreatePullRequestHandler(w http.ResponseWriter, r *http.Request) {
 	pr := requestToDomainPR(req)
 	result, err := application.CreatePullRequest(r.Context(), pr)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "duplicate") {
+		if errors.Is(err, domain.ErrPRExists) {
 			writeError(w, http.StatusConflict, ErrorCodePRExists, "PR id already exists")
 			return
 		}
-		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "no possible assigners") {
+		if errors.Is(err, domain.ErrNotFound) || errors.Is(err, domain.ErrNoPossibleAssigners) {
 			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
 			return
 		}
@@ -45,7 +46,11 @@ func MergePullRequestHandler(w http.ResponseWriter, r *http.Request) {
 	pr := requestToDomainPRForMerge(req)
 	result, err := application.MergePullRequest(r.Context(), pr)
 	if err != nil {
-		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+		if errors.Is(err, domain.ErrNotFound) {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
 		return
 	}
 
@@ -63,19 +68,23 @@ func ReassignPullRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	result, newReviewer, err := application.ReassignPullRequest(r.Context(), req.PullRequestID, req.OldUserID)
 	if err != nil {
-		if strings.Contains(err.Error(), "already merged") || strings.Contains(err.Error(), "merged") {
+		if errors.Is(err, domain.ErrPRMerged) {
 			writeError(w, http.StatusConflict, ErrorCodePRMerged, "cannot reassign on merged PR")
 			return
 		}
-		if strings.Contains(err.Error(), "not assigned") {
+		if errors.Is(err, domain.ErrNotAssigned) {
 			writeError(w, http.StatusConflict, ErrorCodeNotAssigned, "reviewer is not assigned to this PR")
 			return
 		}
-		if strings.Contains(err.Error(), "no active replacement") || strings.Contains(err.Error(), "no possible") {
+		if errors.Is(err, domain.ErrNoCandidate) {
 			writeError(w, http.StatusConflict, ErrorCodeNoCandidate, "no active replacement candidate in team")
 			return
 		}
-		writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+		if errors.Is(err, domain.ErrNotFound) {
+			writeError(w, http.StatusNotFound, ErrorCodeNotFound, "resource not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, ErrorCodeNotFound, err.Error())
 		return
 	}
 
