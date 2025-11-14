@@ -50,6 +50,7 @@ type PullRequestStorager interface {
 	PullRequestCreator
 	PullRequestMerger
 	PullRequestReassigner
+	UserPullRequestReviewer
 }
 
 type PullRequestSelector interface {
@@ -66,4 +67,8 @@ type PullRequestMerger interface {
 
 type PullRequestReassigner interface {
 	Reassign(pullRequest domain.PullRequest) error
+}
+
+type UserPullRequestReviewer interface {
+	SelectUserPullRequestsReviews(userID string) ([]domain.PullRequest, error)
 }

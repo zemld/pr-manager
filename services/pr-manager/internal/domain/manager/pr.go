@@ -141,3 +141,7 @@ func (m *PullRequestManager) filterReviewers(userIDs []string, destrictedUserIDs
 func (m *PullRequestManager) getRandomUserID(userIDs []string) string {
 	return userIDs[rand.IntN(len(userIDs))]
 }
+
+func (m *PullRequestManager) UserPullRequestsReviews(userID string) ([]domain.PullRequest, error) {
+	return m.Storage.PullRequestStorage.SelectUserPullRequestsReviews(userID)
+}

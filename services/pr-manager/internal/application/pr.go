@@ -41,6 +41,17 @@ func ReassignPullRequest(ctx context.Context, pullRequestID string, oldReviewerI
 	return result, err
 }
 
+func GetUserPullRequestsReviews(ctx context.Context, userID string) ([]domain.PullRequest, error) {
+	var result []domain.PullRequest
+	err := executor.withTransaction(ctx, func(tx *db.Transactor) error {
+		pullRequestManager := manager.NewPullRequestManager(configureStorage(tx))
+		var err error
+		result, err = pullRequestManager.UserPullRequestsReviews(userID)
+		return err
+	})
+	return result, err
+}
+
 func configureStorage(tx *db.Transactor) *db.Storage {
 	userStorage := db.NewUserStorage(config, *tx)
 	userStorage.SetSelectQuery(db.SelectUser)
@@ -53,6 +64,7 @@ func configureStorage(tx *db.Transactor) *db.Storage {
 	pullRequestStorage.SetCreateQuery(db.CreatePullRequest)
 	pullRequestStorage.SetMergeQuery(db.MergePullRequest)
 	pullRequestStorage.SetReassignQuery(db.ReassignPullRequest)
+	pullRequestStorage.SetUserPullRequestsReviewsQuery(db.UserPullRequestsReviews)
 
 	return &db.Storage{
 		Config:             config,

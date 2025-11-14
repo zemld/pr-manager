@@ -2,6 +2,7 @@ package manager
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/zemld/pr-manager/pr-manager/internal/domain"
@@ -106,6 +107,25 @@ func (m *mockPullRequestStorage) Reassign(pullRequest domain.PullRequest) error 
 	}
 	m.prs[pullRequest.ID] = pullRequest
 	return nil
+}
+
+func (m *mockPullRequestStorage) SelectUserPullRequestsReviews(userID string) ([]domain.PullRequest, error) {
+	var result []domain.PullRequest
+	for _, pr := range m.prs {
+		// Check if userID is in assigned_reviewers
+		// Format is "[id1, id2]" or "[id1]"
+		reviewers := strings.Trim(pr.AssignedReviewers, "[]")
+		if reviewers != "" {
+			parts := strings.Split(reviewers, ",")
+			for _, part := range parts {
+				if strings.TrimSpace(part) == userID {
+					result = append(result, pr)
+					break
+				}
+			}
+		}
+	}
+	return result, nil
 }
 
 // createMockStorage creates a mock storage with all storages
