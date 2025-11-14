@@ -36,7 +36,7 @@ func writeError(w http.ResponseWriter, statusCode int, code ErrorCode, message s
 	})
 }
 
-func writeJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(data)

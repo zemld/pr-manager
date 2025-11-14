@@ -28,6 +28,8 @@ func main() {
 	mux.HandleFunc("POST /pullRequest/merge", handlers.MergePullRequestHandler)
 	mux.HandleFunc("POST /pullRequest/reassign", handlers.ReassignPullRequestHandler)
 
+	mux.HandleFunc("GET /stats/get", handlers.GetStatsHandler)
+
 	port := "8080"
 	fmt.Printf("Server starting on port %s\n", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
