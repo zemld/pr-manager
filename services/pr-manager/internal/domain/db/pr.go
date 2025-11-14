@@ -1,6 +1,10 @@
 package db
 
-import "github.com/zemld/pr-manager/pr-manager/internal/domain"
+import (
+	"errors"
+
+	"github.com/zemld/pr-manager/pr-manager/internal/domain"
+)
 
 type PullRequestStorage struct {
 	Config
@@ -62,7 +66,7 @@ func (s *PullRequestStorage) Select(pullRequestID string) (domain.PullRequest, e
 }
 
 func (s *PullRequestStorage) Create(pullRequest domain.PullRequest) error {
-	_, err := s.Transactor.Exec(s.ctx, s.createQuery,
+	commandTag, err := s.Transactor.Exec(s.ctx, s.createQuery,
 		pullRequest.ID,
 		pullRequest.Name,
 		pullRequest.AuthorID,
@@ -70,6 +74,9 @@ func (s *PullRequestStorage) Create(pullRequest domain.PullRequest) error {
 	)
 	if err != nil {
 		return err
+	}
+	if commandTag.RowsAffected() == 0 {
+		return errors.New("PR id already exists")
 	}
 	return nil
 }

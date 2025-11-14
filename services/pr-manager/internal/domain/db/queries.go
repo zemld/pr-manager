@@ -79,6 +79,7 @@ const (
 			merged_at = NOW()
 		WHERE
 			id = $1
+			AND status_id != (SELECT id FROM pull_requests_statuses WHERE status = 'merged')
 	`
 	ReassignPullRequest = `
 	UPDATE
