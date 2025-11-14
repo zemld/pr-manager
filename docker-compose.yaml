@@ -1,0 +1,22 @@
+services:
+  pr-manager:
+    image: golang:1.25.1-alpine
+    build:
+      context: ./services/pr-manager
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    env_file:
+      - ./secrets/db.env
+
+  db:
+    image: postgres:17.2-alpine
+    ports:
+      - 5432:5432
+    env_file:
+      - ./secrets/db.env
+    volumes:
+      - pr-data:/var/lib/postgresql/data
+
+volumes:
+  pr-data:
