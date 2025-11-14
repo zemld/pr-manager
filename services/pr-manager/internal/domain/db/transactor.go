@@ -43,6 +43,7 @@ func (t *Transactor) Commit() error {
 	if t.isReadOnly {
 		if t.conn != nil {
 			t.conn.Release()
+			t.conn = nil
 		}
 		return nil
 	}
@@ -50,9 +51,11 @@ func (t *Transactor) Commit() error {
 		if err := t.tx.Commit(t.ctx); err != nil {
 			return err
 		}
+		t.tx = nil
 	}
 	if t.conn != nil {
 		t.conn.Release()
+		t.conn = nil
 	}
 	return nil
 }
@@ -61,6 +64,7 @@ func (t *Transactor) Rollback() error {
 	if t.isReadOnly {
 		if t.conn != nil {
 			t.conn.Release()
+			t.conn = nil
 		}
 		return nil
 	}
@@ -68,9 +72,11 @@ func (t *Transactor) Rollback() error {
 		if err := t.tx.Rollback(t.ctx); err != nil {
 			return err
 		}
+		t.tx = nil
 	}
 	if t.conn != nil {
 		t.conn.Release()
+		t.conn = nil
 	}
 	return nil
 }
